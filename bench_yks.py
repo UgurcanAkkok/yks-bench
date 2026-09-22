@@ -119,8 +119,17 @@ def choice_question(row: dict, variant: str, rotation: int, encoding: str = "bar
         criteria = {label: row["options"][label] for label in order}
         back = {label: label for label in order}
     else:
-        criteria = {row["options"][label]: "" for label in order}
-        back = {row["options"][label]: label for label in order}
+        # A question whose options are printed as an image has blank option text,
+        # and two options can coincide once whitespace is stripped. Both would
+        # collide as dict keys, so they get a placeholder that says what happened
+        # rather than being silently merged into one option.
+        criteria, back = {}, {}
+        for label in order:
+            text = row["options"][label].strip() or f"(option {label}: printed as an image)"
+            while text in criteria:
+                text += " "
+            criteria[text] = None
+            back[text] = label
     question = {"type": "choice", "instructions": instruction_for(row, variant), "criteria": criteria}
     return {"q": question}, order, back
 

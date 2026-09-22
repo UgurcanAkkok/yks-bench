@@ -5,6 +5,6 @@
 *.pdf
 questions.jsonl
 questions_textonly.jsonl
-data/
+data/yks2026/
 .env
 __pycache__/

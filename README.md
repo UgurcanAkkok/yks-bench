@@ -65,14 +65,75 @@ incremental value of reading is ~33pp, not the full 62pp over chance.
 | **MAT** | **AYT Mathematics** | **50.0%** | [25.4, 74.6] | 12 |
 | **TEM** | **TYT Basic Mathematics** | **21.4%** | [7.6, 47.6] | 14 |
 
-Verbal reasoning runs high-80s to low-90s. **Basic mathematics is at chance** — a
-direct measurement of the documented limitation that Jev is not a calculator and
-arithmetic belongs in code. Both maths sections have small n (the figure filter
-removes most maths questions, whose content is a bitmap), so the intervals are wide.
+Verbal reasoning runs high-80s to low-90s, mathematics far below it — a direct
+measurement of the documented limitation that Jev is not a calculator and arithmetic
+belongs in code. Both maths sections have small n *in this table*, because the figure
+filter removes most maths questions; the next section covers all 691 and is the one
+to read for anything about maths.
 
 Local `english` for comparison: İNG 45.0%, TEM 42.9%, ALM 36.2%, then everything else
 between 16% and 28%. Only İNG clears the baseline, and with twelve sections tested
 roughly one such result is expected by chance.
+
+## What it would score on the actual exam
+
+The table above uses the 593 questions answerable from text alone. A candidate
+doesn't get to skip the other 98, so the exam score runs **all 691 printed
+questions**, with the figures unseen. Overall accuracy across all 691: **74.2%**.
+
+ÖSYM scores in nets, not accuracy: `net = correct − wrong/4`, blanks free. The
+quarter-mark penalty is set so that random guessing is worth exactly zero.
+
+| exam | test | net | of | | exam | test | net | of |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TYT | Türkçe | 28.75 | 40 | | AYT | Türk Dili – Sos-1 | 27.50 | 40 |
+| TYT | Sosyal Bilimler | 13.75 | 20 | | AYT | Sosyal Bilimler-2 | 28.75 | 40 |
+| TYT | Temel Matematik | **−1.25** | 40 | | AYT | Matematik | **−1.25** | 40 |
+| TYT | Fen Bilimleri | 10.00 | 20 | | AYT | Fen Bilimleri | 20.00 | 40 |
+| | **TYT total** | **51.25** | 120 | | YDT | İngilizce | **67.50** | 80 |
+| | | | | | | **AYT total** | **75.00** | 160 |
+
+**Both mathematics tests come out negative.** At −1.25 net it would have scored
+higher by leaving the whole test blank, and lower than a candidate who filled the
+sheet at random. English at 67.50 / 80 is its strongest result.
+
+No puan is quoted: converting nets to a YKS score standardises against that year's
+candidate population, and those constants aren't published in usable form. A
+placement score also folds in a school GPA, which a model doesn't have.
+
+### The figure penalty, and a calibration trap
+
+| | accuracy | n | | | accuracy | n |
+| --- | --- | --- | --- | --- | --- | --- |
+| text only | 82.0% | 599 | | verbal, text only | 84.9% | 538 |
+| has a figure | 23.9% | 92 | | quantitative, text only | 55.7% | 61 |
+
+A figure costs ~30pp whatever the subject, and quantitative material is
+*additionally* weaker. "Maths is at chance" was partly an artifact of maths being
+where the figures are — on maths it can read, it scores 55.7%.
+
+The more useful finding is what confidence does there:
+
+| group | n | accuracy | mean top-p | gap |
+| --- | --- | --- | --- | --- |
+| verbal, text only | 538 | 84.9% | 82.6% | +2.4 |
+| quantitative, text only | 61 | 55.7% | 63.4% | −7.7 |
+| **quantitative, has a figure** | 79 | 20.3% | 50.0% | **−29.7** |
+| all | 691 | 74.2% | 76.5% | −2.2 |
+
+The overall gap of −2.2pp is excellent and hides the subgroup that matters. The
+model can't see that a figure *exists*, so it reads the surrounding text as though
+nothing were missing and reports ordinary confidence about an answer it had no
+basis to give. **Missing information the model cannot detect does not lower its
+confidence.** A confidence gate catches none of it: answering pays whenever
+`p > 0.2`, and the top probability never falls that low on any of the 691, so
+optimal blanking produces zero blanks.
+
+Check calibration inside the subgroup you intend to gate on, not just overall.
+
+```bash
+python exam_score.py results/jev-1.13.0-all-691.jsonl --variant V5
+```
 
 ## Method in brief
 
@@ -103,7 +164,9 @@ extract_yks.py     ÖSYM PDF  →  JSONL (watermark removal, two-column layout, 
 bench_yks.py       run a model over the set; seven arms; writes full distributions
 bench_report.py    all metrics, recomputed from disk; never calls a model
 bench_probe.py     diagnose an at-chance score: is the model broken, or is the task out of scope?
-results/           12,044 rows (Jev) + 68,154 rows (local); ids, labels, probabilities
+exam_score.py      results  →  YKS nets, figure penalty, per-subgroup calibration
+data/              structural metadata per question (id, section, gold, has_figure) -- no text
+results/           13,426 rows (Jev) + 68,154 rows (local); ids, labels, probabilities
 RESULTS.md         full results, method, limitations, and the harness bugs found
 ```
 
@@ -118,6 +181,7 @@ answer keys](https://www.osym.gov.tr/2026yks-tyt-ayt-ve-ydt-temel-soru-kitapcikl
 then:
 
 ```bash
+python extract_yks.py data/yks2026/*.pdf --out questions.jsonl              # all 691
 python extract_yks.py data/yks2026/*.pdf --text-only --out questions_textonly.jsonl
 
 # hosted
@@ -132,9 +196,15 @@ python serve.py --offline --preload all \
 python bench_yks.py --out results/laya-local-bare.jsonl --variants V1 --rotations 5
 
 python bench_report.py results/jev-1.13.0.jsonl --sections-for jev-latest
+
+# all 691 printed questions, for the exam score
+python bench_yks.py --questions questions.jsonl --out results/jev-1.13.0-all-691.jsonl \
+    --checkpoints jev-latest --variants V5 --rotations 1 --skip-controls \
+    --workers 6 --url https://api.typesafe.ai
+python exam_score.py results/jev-1.13.0-all-691.jsonl --variant V5
 ```
 
-The hosted run is 12,044 rows for **$0.056**.
+The hosted runs are 13,426 rows for **$0.09**.
 
 ## A note on the harness
 

@@ -5,9 +5,10 @@ A decision model against a national university entrance exam it could not have s
 **Date of run:** 22–23 September 2026
 **Models:** `jev-1.13.0` (hosted) and `laya` 0.3.5 checkpoints `english`, `multilingual`,
 `typed-decisions` (local, RTX 4070 Ti SUPER, bf16)
-**Items:** 593 five-option questions from 2026-YKS, sat 20–21 June 2026
-**Rows collected:** 80,198 across both models
-**Cost:** $0.056 for the hosted run (1.32M input tokens at $0.042/Mtok)
+**Items:** 593 five-option questions for the controlled comparison; **all 691
+printed questions** for the exam score in §4
+**Rows collected:** 81,580 across both models
+**Cost:** $0.09 for the hosted runs (2.2M input tokens at $0.042/Mtok)
 
 ---
 
@@ -93,7 +94,7 @@ which laya already does implicitly by wrapping instructions in `"choice question
 laya renders a choice option as `"<key>: <description>"`. Criteria keyed `A`–`E`
 therefore put an information-free letter token in front of every option. The
 documented form for value-selection keys criteria **by the candidate text** with
-`null` descriptions, which is what this benchmark uses. See §7.
+`null` descriptions, which is what this benchmark uses. See §8.
 
 ### 2.5 Controls
 
@@ -124,7 +125,7 @@ independent information. ECE uses ten equal-mass bins.
 
 The local server ran **unbatched**. Concurrent micro-batching shifts probabilities
 by up to 0.043 in bf16, and a quarter of items have a top-1 margin narrower than
-that (§6). The hosted run used six concurrent workers, where our own batching cannot
+that (§7). The hosted run used six concurrent workers, where our own batching cannot
 perturb anything.
 
 ---
@@ -209,7 +210,98 @@ on a real exam. Note the small n on both maths sections; the intervals are wide.
 
 ---
 
-## 4. Results — local `laya` 0.3.5
+## 4. What it would actually score on the exam
+
+§3 uses the 593 questions answerable from text alone, which is the right set for a
+controlled comparison but flatters the model: the 98 excluded questions are
+concentrated in maths and science. A candidate does not get to skip them. This
+section runs **all 691 printed questions** — figures included, with the figure
+unseen — under V5, rotation 0. Reproduce with `exam_score.py`.
+
+Overall accuracy across all 691: **74.2%**.
+
+### 4.1 Nets
+
+ÖSYM scores in nets, not accuracy: `net = correct − wrong/4`. A blank costs
+nothing, and the quarter-mark penalty is set so that guessing at random is worth
+exactly zero in expectation.
+
+| exam | test | correct | wrong | **net** | of | accuracy |
+| --- | --- | --- | --- | --- | --- | --- |
+| TYT | Türkçe | 31 | 9 | **28.75** | 40 | 77.5% |
+| TYT | Sosyal Bilimler | 15 | 5 | **13.75** | 20 | 75.0% |
+| TYT | Temel Matematik | 7 | 33 | **−1.25** | 40 | 17.5% |
+| TYT | Fen Bilimleri | 12 | 8 | **10.00** | 20 | 60.0% |
+| AYT | Türk Dili ve Ed. – Sosyal-1 | 30 | 10 | **27.50** | 40 | 75.0% |
+| AYT | Sosyal Bilimler-2 | 31 | 9 | **28.75** | 40 | 77.5% |
+| AYT | Matematik | 7 | 33 | **−1.25** | 40 | 17.5% |
+| AYT | Fen Bilimleri | 24 | 16 | **20.00** | 40 | 60.0% |
+| YDT | İngilizce | 70 | 10 | **67.50** | 80 | 87.5% |
+| | **TYT total** | 65 | 55 | **51.25** | 120 | |
+| | **AYT total** | 92 | 68 | **75.00** | 160 | |
+| | **YDT total** | 70 | 10 | **67.50** | 80 | |
+
+**Both mathematics tests come out negative.** At −1.25 net the model would have
+scored higher by leaving the entire test blank, and lower than a candidate who
+filled the sheet at random. Everything verbal sits between 27.5 and 28.75 net, and
+the English language test at 67.50 / 80 is its strongest result by a wide margin.
+
+No puan is given. Converting nets to a YKS score standardises each test against
+that year's candidate population, and those constants are not published in usable
+form; a placement score also folds in a school GPA, which a model does not have.
+
+### 4.2 The cost of a figure
+
+| | accuracy | 95% CI | n |
+| --- | --- | --- | --- |
+| text only | 82.0% | [78.7, 84.8] | 599 |
+| has a figure | 23.9% | [16.4, 33.6] | 92 |
+
+Separating the figure effect from the subject effect shows they are independent:
+
+| | accuracy | n |
+| --- | --- | --- |
+| verbal, text only | 84.9% | 538 |
+| verbal, has a figure | 46.2% | 13 |
+| quantitative, text only | 55.7% | 61 |
+| quantitative, has a figure | 20.3% | 79 |
+
+A figure costs roughly 30–35pp whatever the subject, and quantitative material is
+*additionally* weaker than verbal. The earlier reading that "maths is at chance"
+was partly an artifact of maths being where the figures live — on maths it can
+actually read, it scores 55.7%.
+
+### 4.3 Confidence is worst exactly where the model is blind
+
+| group | n | accuracy | mean top-p | gap |
+| --- | --- | --- | --- | --- |
+| verbal, text only | 538 | 84.9% | 82.6% | +2.4 |
+| verbal, has a figure | 13 | 46.2% | 46.7% | −0.5 |
+| quantitative, text only | 61 | 55.7% | 63.4% | −7.7 |
+| **quantitative, has a figure** | 79 | 20.3% | 50.0% | **−29.7** |
+| **every question with a figure** | 92 | 23.9% | 49.5% | **−25.6** |
+| all | 691 | 74.2% | 76.5% | −2.2 |
+
+The overall gap of −2.2pp is excellent and **completely hides the subgroup that
+matters**. On a quantitative question whose content is a picture, the model claims
+50% and delivers 20%.
+
+The mechanism is worth stating plainly: the model cannot see that a figure exists,
+so it reads the surrounding text as though nothing were missing and reports
+ordinary confidence about an answer it had no basis to give. Missing information
+that the model has no way to detect does not lower its confidence.
+
+The practical consequence is that a confidence gate would not have caught any of
+it. Answering is worth it whenever `p > 0.2`, and the model's top probability never
+falls to 0.2 on any of the 691 questions — so optimal blanking leaves the net
+unchanged at 468.50 and produces **zero blanks**.
+
+A global ECE is not enough. Calibration has to be checked inside the subgroup the
+gate is meant to catch.
+
+---
+
+## 5. Results — local `laya` 0.3.5
 
 ### 4.1 Accuracy
 
@@ -282,7 +374,7 @@ sections tested, roughly one such result is expected by chance.
 
 ---
 
-## 5. Diagnostics — is the local model broken?
+## 6. Diagnostics — is the local model broken?
 
 No. `bench_probe.py` separates "broken" from "out of scope".
 
@@ -309,7 +401,7 @@ option preference, 26.5% vs 20%). Only negation showed an effect: 19.6% on
 
 ---
 
-## 6. Phase 0 — preconditions
+## 7. Phase 0 — preconditions
 
 **Determinism: exact.** Two sequential runs, max |Δp| = 0.00000000.
 
@@ -323,7 +415,7 @@ tokenizers, at `--max-len 2048 --head-max-len 768 --option-max-tokens 128`.
 
 ---
 
-## 7. Harness defects found and fixed
+## 8. Harness defects found and fixed
 
 Both were found after the first full run and both required re-running.
 
@@ -357,13 +449,19 @@ Checked against the docs and found correct: `serialize_state` is plain `json.dum
 
 ---
 
-## 8. Limitations
+## 9. Limitations
 
 * **Choices-only at 49.7% for Jev** means the headline overstates reading ability.
   The passage-independent component is large.
-* **Small n on the quantitative sections** (MAT 12, TEM 14). The figure filter removes
-  most maths questions because their content is a bitmap. The maths conclusion is
-  directionally clear but the intervals are wide.
+* **The controlled comparison in §3 covers 593 of 691 questions.** The excluded 98
+  are mostly maths and science, so §3's per-section maths numbers rest on 12–14
+  items. §4 covers all 691 and should be preferred for anything about maths.
+* **A figure question is scored with the figure unseen.** That is the honest
+  handicap for a text-only model, but it is not the handicap a human candidate
+  faces, so §4.1's nets understate what the same reasoning would achieve with
+  vision. Adding generated figure descriptions was considered and rejected: it
+  would make the benchmark measure a two-model pipeline, and a describer that can
+  reason can smuggle the answer into the description.
 * **One exam, one year, one language.** Nothing here generalises to other languages
   or to Jev's performance on the decision tasks it is actually sold for.
 * **Twelve sections tested.** Expect roughly one spurious "clears the baseline" result.
@@ -373,7 +471,7 @@ Checked against the docs and found correct: `serialize_state` is plain `json.dum
 
 ---
 
-## 9. Reproducing
+## 10. Reproducing
 
 ```bash
 # 1. fetch the booklets (URLs in README.md) into data/yks2026/
@@ -393,6 +491,12 @@ python bench_yks.py --out results/jev-1.13.0.jsonl \
 # 5. report, and diagnose an at-chance result
 python bench_report.py results/jev-1.13.0.jsonl --sections-for jev-latest
 python bench_probe.py sanity ladder options state
+
+# 5. the exam score, over all 691 printed questions
+python bench_yks.py --questions questions.jsonl --out results/jev-1.13.0-all-691.jsonl \
+    --checkpoints jev-latest --variants V5 --rotations 1 --skip-controls \
+    --workers 6 --url https://api.typesafe.ai
+python exam_score.py results/jev-1.13.0-all-691.jsonl --variant V5
 ```
 
 `results/*.jsonl` carry the full probability distribution for every item, so every
@@ -400,7 +504,7 @@ number above can be recomputed without re-running inference.
 
 ---
 
-## 10. Provenance
+## 11. Provenance
 
 Questions © ÖSYM, published at
 <https://www.osym.gov.tr/2026yks-tyt-ayt-ve-ydt-temel-soru-kitapciklari-ve-cevap-anahtarlari>.
