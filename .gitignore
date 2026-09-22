@@ -1,0 +1,10 @@
+# OSYM publishes the booklets and holds the rights to the questions; reproducing
+# or redistributing them is not permitted. The PDFs and the extracted question
+# text stay local. README.md has the download URLs, and extract_yks.py rebuilds
+# questions_textonly.jsonl from them byte for byte.
+*.pdf
+questions.jsonl
+questions_textonly.jsonl
+data/
+.env
+__pycache__/
