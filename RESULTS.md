@@ -121,7 +121,15 @@ Calibration is computed on the top probability, not on `confidence`: for a 5-opt
 Choice, `confidence = (5·p_max − 1) / 4`, a monotone rescaling that carries no
 independent information. ECE uses ten equal-mass bins.
 
-### 2.7 Execution
+### 2.7 Execution and reproducibility
+
+**Hosted Jev is not deterministic.** Two runs over the same 593 items, with
+identical requests, disagreed on 19 answers (3.2%), max |Δp| 0.27, mean |Δp| 0.009.
+The flips concentrate on near-ties (p ≈ 0.23–0.50), which is the signature of
+numerical nondeterminism in a serving stack rather than of sampling. Accuracy moved
+0.3pp between the runs (82.3% → 82.6%). No conclusion here turns on a gap that
+small, but a single-run number carries this wobble on top of its sampling interval,
+and anything published from one run should say so.
 
 The local server ran **unbatched**. Concurrent micro-batching shifts probabilities
 by up to 0.043 in bf16, and a quarter of items have a top-1 margin narrower than
@@ -187,7 +195,11 @@ The fitted temperature is 0.95 — already calibrated, nothing to fix. The
 risk–coverage curve is what the product claim promises: keep the most confident
 quarter and every answer is right.
 
-### 3.6 Section breakdown (V5, rotation 0)
+### 3.6 Section breakdown — text-only subset (V5, rotation 0)
+
+These are the 593 questions answerable from text alone, so the quantitative rows
+rest on 12–14 items and TYT/AYT Fen are merged. §4.4 has every test at its full
+official length, which is the table to use.
 
 | section | test | accuracy | 95% CI | n |
 | --- | --- | --- | --- | --- |
@@ -204,9 +216,8 @@ quarter and every answer is right.
 | **MAT** | **AYT Mathematics** | **50.0%** | [25.4, 74.6] | 12 |
 | **TEM** | **TYT Basic Mathematics** | **21.4%** | [7.6, 47.6] | 14 |
 
-Verbal sections run high-80s to low-90s. **Basic mathematics is at chance.** This is
-jaggedness item #2 — *"Jev is not a calculator, keep arithmetic in code"* — measured
-on a real exam. Note the small n on both maths sections; the intervals are wide.
+Verbal sections run high-80s to low-90s, mathematics far below. Note the small n on
+both maths sections here; §4.4 covers all 40 questions of each.
 
 ---
 
@@ -271,7 +282,33 @@ A figure costs roughly 30–35pp whatever the subject, and quantitative material
 was partly an artifact of maths being where the figures live — on maths it can
 actually read, it scores 55.7%.
 
-### 4.3 Confidence is worst exactly where the model is blind
+### 4.3 Section breakdown, every test at full length
+
+| test | accuracy | 95% CI | n | of which have a figure |
+| --- | --- | --- | --- | --- |
+| YDT Almanca | 92.5% | [84.6, 96.5] | 80 | 0 |
+| YDT Fransızca | 92.5% | [84.6, 96.5] | 80 | 0 |
+| YDT Rusça | 88.8% | [80.0, 94.0] | 80 | 0 |
+| YDT İngilizce | 87.5% | [78.5, 93.1] | 80 | 0 |
+| TYT Sosyal Bilimler | 80.0% | [60.9, 91.1] | 25 | 3 |
+| AYT Sosyal Bilimler-2 | 78.3% | [64.4, 87.7] | 46 | 6 |
+| TYT Türkçe | 77.5% | [62.5, 87.7] | 40 | 0 |
+| AYT Türk Dili + Sosyal-1 | 75.0% | [59.8, 85.8] | 40 | 4 |
+| YDT Arapça | 71.2% | [60.5, 80.0] | 80 | 0 |
+| AYT Fen Bilimleri | 60.0% | [44.6, 73.7] | 40 | 18 |
+| TYT Fen Bilimleri | 60.0% | [38.7, 78.1] | 20 | 10 |
+| **AYT Matematik** | **17.5%** | [8.7, 32.0] | 40 | 26 |
+| **TYT Temel Matematik** | **17.5%** | [8.7, 32.0] | 40 | 25 |
+
+The ranking is close to the figure column reversed. The language tests carry no
+figures and run 87–93%; both mathematics tests are about two-thirds figures and land
+at 17.5%, below what a random guesser scores. Science sits between, at roughly half
+figures. §4.2 separates the two effects.
+
+TYT and AYT each print a test called Fen Bilimleri. They are different tests and are
+kept apart here; §3.6 merged them, which was a defect in that table.
+
+### 4.4 Confidence is worst exactly where the model is blind
 
 | group | n | accuracy | mean top-p | gap |
 | --- | --- | --- | --- | --- |
@@ -303,13 +340,13 @@ gate is meant to catch.
 
 ## 5. Results — local `laya` 0.3.5
 
-### 4.1 Accuracy
+### 5.1 Accuracy
 
 All nine configurations (3 checkpoints × 3 phrasings) land between 20.6% and 27.0%.
 Under the corrected option encoding: english 27.0% [23.6, 30.7], typed-decisions
 25.1% [21.8, 28.8], multilingual 22.3% [19.1, 25.8].
 
-### 4.2 Controls — nothing moves
+### 5.2 Controls — nothing moves
 
 | checkpoint | choices-only | no-passage | shuffled |
 | --- | --- | --- | --- |
@@ -321,7 +358,7 @@ Every interval contains zero. Deleting the question, removing the passage, or
 substituting the wrong passage entirely all cost nothing measurable. This is the
 signature of a model that is not reading the state.
 
-### 4.3 Option order
+### 5.3 Option order
 
 | checkpoint | mean acc | spread | all 5 agree | picked position 1–5 |
 | --- | --- | --- | --- | --- |
@@ -332,7 +369,7 @@ signature of a model that is not reading the state.
 Two checkpoints show a marked first-slot preference, and on roughly three quarters
 of items the winner changes when the options are merely rotated.
 
-### 4.4 Choice vs Nouls, and parallel questions
+### 5.4 Choice vs Nouls, and parallel questions
 
 No decomposition helps: english −3.4 [−8.1, +1.2], multilingual +2.4 [−2.4, +6.9],
 typed-decisions −1.3 [−5.7, +3.0]. Noul sums 2.84–3.03.
@@ -340,7 +377,7 @@ typed-decisions −1.3 [−5.7, +3.0]. Noul sums 2.84–3.03.
 Independence: 5–13 flips in 426 with max |Δp| 0.010–0.040 — the same magnitude as
 the pure bf16 batch-shape noise measured in §6, so most likely numerics.
 
-### 4.5 Calibration
+### 5.5 Calibration
 
 | checkpoint | ECE | Brier | fitted T | ECE after T | acc @25% | @100% |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -352,7 +389,7 @@ the pure bf16 batch-shape noise measured in §6, so most likely numerics.
 refitting takes it to 0.034. But good calibration at chance only means the model
 correctly reports that it does not know.
 
-### 4.6 Section breakdown (`english`, V1, rotation 0)
+### 5.6 Section breakdown (`english`, V1, rotation 0)
 
 | section | accuracy | 95% CI | n |
 | --- | --- | --- | --- |
@@ -464,7 +501,10 @@ Checked against the docs and found correct: `serialize_state` is plain `json.dum
   reason can smuggle the answer into the description.
 * **One exam, one year, one language.** Nothing here generalises to other languages
   or to Jev's performance on the decision tasks it is actually sold for.
-* **Twelve sections tested.** Expect roughly one spurious "clears the baseline" result.
+* **Thirteen tests reported.** Expect roughly one spurious "clears the baseline"
+  result among them.
+* **Hosted results are not exactly reproducible.** Two identical runs differ on ~3%
+  of answers (§2.7). Gaps under about half a point should not be read as real.
 * **No hosted contamination claim.** Only the local result is provably uncontaminated.
 * The hosted run used concurrency; the local run did not. This is deliberate, but the
   two are not identical execution regimes.

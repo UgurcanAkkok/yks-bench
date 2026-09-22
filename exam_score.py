@@ -166,6 +166,40 @@ def report_figures(answers: Dict[str, dict], meta: Dict[str, dict]) -> None:
     print("  answered, because a candidate does not get to skip them.")
 
 
+NAMES = {
+    ("2026-TYT", "TÜR"): "TYT Türkçe", ("2026-TYT", "SOS"): "TYT Sosyal Bilimler",
+    ("2026-TYT", "TEM"): "TYT Temel Matematik", ("2026-TYT", "FEN"): "TYT Fen Bilimleri",
+    ("2026-AYT", "TDE-SB1"): "AYT Türk Dili + Sosyal-1", ("2026-AYT", "SB2"): "AYT Sosyal Bilimler-2",
+    ("2026-AYT", "MAT"): "AYT Matematik", ("2026-AYT", "FEN"): "AYT Fen Bilimleri",
+    ("2026-YDT", "İNG"): "YDT İngilizce", ("2026-YDT", "ALM"): "YDT Almanca",
+    ("2026-YDT", "FRA"): "YDT Fransızca", ("2026-YDT", "RUS"): "YDT Rusça",
+    ("2026-YDT", "AR"): "YDT Arapça",
+}
+
+
+def report_sections(answers: Dict[str, dict], meta: Dict[str, dict]) -> None:
+    """Every printed question, split by the test it belongs to.
+
+    TYT and AYT each have a test called Fen Bilimleri; they are different tests and
+    are kept apart here.
+    """
+    rows: Dict[Tuple[str, str], List[dict]] = defaultdict(list)
+    for i, m in meta.items():
+        if i in answers:
+            rows[(m["exam"], m["section"])].append(answers[i])
+    ordered = sorted(rows.items(),
+                     key=lambda kv: -sum(1 for r in kv[1] if r["correct"]) / len(kv[1]))
+    print(f"\n{'test':<28}{'accuracy':>10}{'95% CI':>16}{'n':>5}{'figures':>9}")
+    print("-" * 68)
+    for key, group in ordered:
+        hits = sum(1 for r in group if r["correct"])
+        lo, hi = wilson(hits, len(group))
+        figures = sum(1 for i, m in meta.items()
+                      if (m["exam"], m["section"]) == key and m["has_figure"])
+        print(f"{NAMES.get(key, key[1]):<28}{100 * hits / len(group):>9.1f}%"
+              f"  [{lo:5.1f},{hi:5.1f}]{len(group):>5}{figures:>9}")
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Score a run in YKS nets.")
     parser.add_argument("results", type=Path)
@@ -180,6 +214,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
           f"({args.results.name}, variant={args.variant or 'any'}, rotation={args.rotation})")
 
     report_nets(answers, meta)
+    report_sections(answers, meta)
     report_figures(answers, meta)
     report_calibration(answers, meta)
     report_blanking(answers, meta)

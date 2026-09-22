@@ -48,32 +48,44 @@ incremental value of reading is ~33pp, not the full 62pp over chance.
 
 ## Section breakdown
 
-`jev-1.13.0`, V5 phrasing, rotation 0:
+`jev-1.13.0`, V5 phrasing, **all 691 printed questions** — every test at its full
+official length, figures included and unseen. TYT and AYT each have a test called
+Fen Bilimleri; they are different tests and are kept apart.
 
-| section | test | accuracy | 95% CI | n |
+| test | accuracy | 95% CI | n | of which have a figure |
 | --- | --- | --- | --- | --- |
-| ALM | YDT German | 92.5% | [84.6, 96.5] | 80 |
-| SOS | TYT Social Sciences | 90.9% | [72.2, 97.5] | 22 |
-| FRA | YDT French | 90.0% | [81.5, 94.8] | 80 |
-| RUS | YDT Russian | 87.5% | [78.5, 93.1] | 80 |
-| İNG | YDT English | 87.5% | [78.5, 93.1] | 80 |
-| SB2 | AYT Social Sciences 2 | 84.6% | [70.3, 92.8] | 39 |
-| FEN | TYT/AYT Science | 80.0% | [62.7, 90.5] | 30 |
-| TDE-SB1 | AYT Literature + Social 1 | 77.8% | [61.9, 88.3] | 36 |
-| TÜR | TYT Turkish | 77.5% | [62.5, 87.7] | 40 |
-| AR | YDT Arabic | 71.2% | [60.5, 80.0] | 80 |
-| **MAT** | **AYT Mathematics** | **50.0%** | [25.4, 74.6] | 12 |
-| **TEM** | **TYT Basic Mathematics** | **21.4%** | [7.6, 47.6] | 14 |
+| YDT Almanca (German) | 92.5% | [84.6, 96.5] | 80 | 0 |
+| YDT Fransızca (French) | 92.5% | [84.6, 96.5] | 80 | 0 |
+| YDT Rusça (Russian) | 88.8% | [80.0, 94.0] | 80 | 0 |
+| YDT İngilizce (English) | 87.5% | [78.5, 93.1] | 80 | 0 |
+| TYT Sosyal Bilimler | 80.0% | [60.9, 91.1] | 25 | 3 |
+| AYT Sosyal Bilimler-2 | 78.3% | [64.4, 87.7] | 46 | 6 |
+| TYT Türkçe | 77.5% | [62.5, 87.7] | 40 | 0 |
+| AYT Türk Dili + Sosyal-1 | 75.0% | [59.8, 85.8] | 40 | 4 |
+| YDT Arapça (Arabic) | 71.2% | [60.5, 80.0] | 80 | 0 |
+| AYT Fen Bilimleri | 60.0% | [44.6, 73.7] | 40 | 18 |
+| TYT Fen Bilimleri | 60.0% | [38.7, 78.1] | 20 | 10 |
+| **AYT Matematik** | **17.5%** | [8.7, 32.0] | 40 | 26 |
+| **TYT Temel Matematik** | **17.5%** | [8.7, 32.0] | 40 | 25 |
 
-Verbal reasoning runs high-80s to low-90s, mathematics far below it — a direct
-measurement of the documented limitation that Jev is not a calculator and arithmetic
-belongs in code. Both maths sections have small n *in this table*, because the figure
-filter removes most maths questions; the next section covers all 691 and is the one
-to read for anything about maths.
+The ordering is almost exactly the figure column in reverse. Language tests carry no
+figures at all and run 87–93%; both mathematics tests are roughly two-thirds figures
+and land at 17.5%, below the 20% a random guesser would score. Science sits between,
+with about half its questions carrying a figure.
 
-Local `english` for comparison: İNG 45.0%, TEM 42.9%, ALM 36.2%, then everything else
-between 16% and 28%. Only İNG clears the baseline, and with twelve sections tested
-roughly one such result is expected by chance.
+That is two effects at once — no figure, and no arithmetic — and §4.2 of
+[RESULTS.md](RESULTS.md) separates them: **on maths it can actually read, it scores
+55.7%**. The text-only version of this table (593 questions) is in RESULTS §3.6.
+
+Local `laya english` for comparison, text-only: İNG 45.0%, TEM 42.9%, ALM 36.2%, and
+everything else between 16% and 28%. Only İNG clears the baseline, and with twelve
+sections tested roughly one such result is expected by chance.
+
+> **Run-to-run variation.** Hosted Jev is not deterministic. Two runs over the same
+> 593 items with identical requests disagreed on 19 answers (3.2%), max |Δp| 0.27,
+> with the flips concentrated on near-ties (p ≈ 0.23–0.50). Accuracy moved 0.3pp
+> (82.3% → 82.6%), so no conclusion turns on it, but a single-run figure carries a
+> small wobble on top of its sampling interval.
 
 ## What it would score on the actual exam
 
